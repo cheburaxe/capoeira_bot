@@ -1,59 +1,79 @@
 import os
 from aiogram import Bot, Dispatcher, executor, types
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("8200093598:AAGe4Tj9I6vpzCro9_GS8OyWk5TRCPFyLPs")
 if not BOT_TOKEN:
-	raise RuntimeError("BOT_TOKEN is not set! Add it in Render Environment.")
+	raise RuntimeError("BOT_TOKEN не задан! Добавьте его в Environment Variables на Render.")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
-	keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-	buttons = ["📍 Филиалы", "📅 Расписание", "📞 Контакты"]
-	keyboard.add(*buttons)
+	keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+	keyboard.add("📍 Филиалы", "📅 Расписание", "📞 Контакты")
 	await message.answer(
-		"Привет! Это бот школы капоэйры.\n"
-		"Выберите раздел:",
+		"Привет! 👋 Это официальный бот школы капоэйры.\n\n"
+		"Выберите интересующий вас раздел:",
 		reply_markup=keyboard
 	)
 
-# ... остальной код (как раньше) — можно скопировать из предыдущего ответа
-
-@dp.message_handler(lambda msg: msg.text == "📍 Филиалы")
-async def show_branches(message: types.Message):
+@dp.message_handler(lambda m: m.text == "📍 Филиалы")
+async def branches(message: types.Message):
 	text = (
-		"• Интеграция: Москва, ул. Лазо, 12\n"
-		"• МосАРТ: Москва, Свободный проспект, 19\n"
-		"• Взрослые: Москва, Саянская ул., 7"
+		"<b>Наши филиалы в Москве:</b>\n\n"
+		"• <b>Интеграция</b>\n  📍 ул. Лазо, 12\n\n"
+		"• <b>МосАРТ</b>\n  📍 Свободный проспект, 19\n\n"
+		"• <b>Взрослые</b>\n  📍 Саянская улица, 7"
 	)
-	await message.answer(text)
+	await message.answer(text, parse_mode="HTML")
 
-@dp.message_handler(lambda msg: msg.text == "📅 Расписание")
+@dp.message_handler(lambda m: m.text == "📅 Расписание")
 async def schedule_menu(message: types.Message):
-	keyboard = types.InlineKeyboardMarkup(row_width=1)
-	keyboard.add(
-		types.InlineKeyboardButton("Интеграция", callback_data="sch_int"),
-		types.InlineKeyboardButton("МосАРТ", callback_data="sch_art"),
-		types.InlineKeyboardButton("Взрослые", callback_data="sch_adult")
+	kb = types.InlineKeyboardMarkup(row_width=1)
+	kb.add(
+		types.InlineKeyboardButton("Интеграция", callback_data="int"),
+		types.InlineKeyboardButton("МосАРТ", callback_data="art"),
+		types.InlineKeyboardButton("Взрослые", callback_data="adult")
 	)
-	await message.answer("Выберите филиал:", reply_markup=keyboard)
+	await message.answer("Выберите филиал:", reply_markup=kb)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("sch_"))
-async def send_schedule(callback: types.CallbackQuery):
-	mapping = {
-		"sch_int": "Интеграция\n📍 ул. Лазо, 12\n\n• 3–5 лет: Вт, Чт — 18:00–19:00\n• 6–10 лет: Вт, Чт — 17:00–18:00\n• 11+: Вт, Чт — 19:00–20:00",
-		"sch_art": "МосАРТ\n📍 Свободный пр., 19\n\n• 3–5 лет: Ср, Пт — 18:00–19:00\n• 5–7 лет: Ср, Пт — 16:00–17:00\n• 8–9 лет: Ср, Пт — 17:00–18:00\n• 10–12 лет: Ср, Пт — 19:00–20:00\n• 12+: Ср, Пт — 20:00–21:00",
-		"sch_adult": "Взрослые\n📍 Саянская ул., 7\n\n• 18+: Ср, Пт — 09:00–10:00"
+@dp.callback_query_handler(lambda c: c.data in ("int", "art", "adult"))
+async def show_schedule(callback: types.CallbackQuery):
+	schedules = {
+		"int": (
+			"<b>Интеграция</b>\n📍 ул. Лазо, 12\n\n"
+			"<b>Расписание:</b>\n"
+			"• Дети 3–5 лет: Вт, Чт — 18:00–19:00\n"
+			"• Дети 6–10 лет: Вт, Чт — 17:00–18:00\n"
+			"• Подростки 11+: Вт, Чт — 19:00–20:00"
+		),
+		"art": (
+			"<b>МосАРТ</b>\n📍 Свободный проспект, 19\n\n"
+			"<b>Расписание:</b>\n"
+			"• Дети 3–5 лет: Ср, Пт — 18:00–19:00\n"
+			"• Дети 5–7 лет: Ср, Пт — 16:00–17:00\n"
+			"• Дети 8–9 лет: Ср, Пт — 17:00–18:00\n"
+			"• Дети 10–12 лет: Ср, Пт — 19:00–20:00\n"
+			"• Подростки 12+: Ср, Пт — 20:00–21:00"
+		),
+		"adult": (
+			"<b>Взрослые</b>\n📍 Саянская улица, 7\n\n"
+			"<b>Расписание:</b>\n"
+			"• Взрослые 18+: Ср, Пт — 09:00–10:00"
+		)
 	}
-	text = mapping.get(callback.data, "Неизвестный филиал")
-	await callback.message.edit_text(text)
+	text = schedules.get(callback.data, "Расписание временно недоступно.")
+	await callback.message.edit_text(text, parse_mode="HTML")
 	await callback.answer()
 
-@dp.message_handler(lambda msg: msg.text == "📞 Контакты")
+@dp.message_handler(lambda m: m.text == "📞 Контакты")
 async def contacts(message: types.Message):
-	await message.answer("📞 +7 (XXX) XXX-XX-XX\n📧 capoeira@moscow.ru")
+	await message.answer(
+		"📞 Телефон: +7 (XXX) XXX-XX-XX\n"
+		"📧 Email: capoeira@moscow.ru\n"
+		"🌐 Instagram: @your_capoeira_school"
+	)
 
 if __name__ == '__main__':
 	executor.start_polling(dp, skip_updates=True)
